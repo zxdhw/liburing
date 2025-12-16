@@ -7,6 +7,7 @@
 *.o
 *.o[ls]
 
+.vscode/
 /src/liburing.a
 /src/liburing.so*
 /src/liburing-ffi.a

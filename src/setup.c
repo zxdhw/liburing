@@ -15,6 +15,22 @@ static void io_uring_unmap_rings(struct io_uring_sq *sq, struct io_uring_cq *cq)
 		__sys_munmap(cq->ring_ptr, cq->ring_sz);
 }
 
+
+static void* io_uring_mmap_hit(int fd, struct io_uring_params *p, struct hitchhiker *hites){
+	
+	unsigned len = p->sq_entries * sizeof(struct hitchhiker);
+	hites = __sys_mmap(0, len, PROT_READ | PROT_WRITE,
+			MAP_SHARED | MAP_POPULATE, fd,
+			IORING_OFF_HIT);
+	// printf("------zhengxd: hites: %p\n", hites);
+	if (IS_ERR(hites)){
+			return PTR_ERR(hites);
+	}
+
+	return hites;
+}
+
+
 static int io_uring_mmap(int fd, struct io_uring_params *p,
 			 struct io_uring_sq *sq, struct io_uring_cq *cq)
 {
@@ -97,11 +113,15 @@ err:
 __cold int io_uring_queue_mmap(int fd, struct io_uring_params *p,
 			       struct io_uring *ring)
 {
-	int ret;
+	int ret, ret2 = 0;
 
 	memset(ring, 0, sizeof(*ring));
 	ret = io_uring_mmap(fd, p, &ring->sq, &ring->cq);
-	if (!ret) {
+	if(p->flags & IORING_SETUP_HIT) {
+		ring->hites = io_uring_mmap_hit(fd, p, ring->hites);
+		printf("------zhengxd: ring->hites: %p\n", ring->hites);
+	}
+	if (!ret && !ret2) {
 		ring->flags = p->flags;
 		ring->ring_fd = ring->enter_ring_fd = fd;
 		ring->int_flags = 0;
@@ -200,6 +220,9 @@ __cold void io_uring_queue_exit(struct io_uring *ring)
 		sqe_size += 64;
 	__sys_munmap(sq->sqes, sqe_size * sq->ring_entries);
 	io_uring_unmap_rings(sq, cq);
+	if(ring->hites) {
+		__sys_munmap(ring->hites, sizeof(struct hitchhiker) * sq->ring_entries);
+	}
 	/*
 	 * Not strictly required, but frees up the slot we used now rather
 	 * than at process exit time.

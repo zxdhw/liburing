@@ -97,6 +97,16 @@ struct io_uring_sqe {
 	};
 };
 
+#define HIT_MAX 126;
+struct hitchhiker {
+	__u32 max;
+	__u32 in_use;
+	__u32 size;
+	__u32 iov_use;
+	__u64 addr[127];
+	__u64 iov[127];
+};
+
 /*
  * If sqe->file_index is set to this for opcodes that instantiate a new
  * direct descriptor (like openat/openat2/accept), then io_uring will allocate
@@ -114,6 +124,7 @@ enum {
 	IOSQE_ASYNC_BIT,
 	IOSQE_BUFFER_SELECT_BIT,
 	IOSQE_CQE_SKIP_SUCCESS_BIT,
+	IOSQE_HIT_BIT,
 };
 
 /*
@@ -133,6 +144,8 @@ enum {
 #define IOSQE_BUFFER_SELECT	(1U << IOSQE_BUFFER_SELECT_BIT)
 /* don't post CQE if request succeeded */
 #define IOSQE_CQE_SKIP_SUCCESS	(1U << IOSQE_CQE_SKIP_SUCCESS_BIT)
+// hit enable
+#define IOSQE_HIT	(1U << IOSQE_HIT_BIT)
 
 /*
  * io_uring_setup() flags
@@ -172,6 +185,9 @@ enum {
  * try to do it just before it is needed.
  */
 #define IORING_SETUP_DEFER_TASKRUN	(1U << 13)
+
+
+#define IORING_SETUP_HIT	(1U << 16)	/* io_context is hitchhike */
 
 enum io_uring_op {
 	IORING_OP_NOP,
@@ -393,6 +409,7 @@ enum {
 #define IORING_OFF_PBUF_RING		0x80000000ULL
 #define IORING_OFF_PBUF_SHIFT		16
 #define IORING_OFF_MMAP_MASK		0xf8000000ULL
+#define IORING_OFF_HIT			0x90000000ULL
 
 /*
  * Filled with the offset for mmap(2)

@@ -135,7 +135,8 @@ struct io_uring {
 	int enter_ring_fd;
 	__u8 int_flags;
 	__u8 pad[3];
-	unsigned pad2;
+	struct hitchhiker *hites;
+	// unsigned pad2;
 };
 
 /*
@@ -1341,6 +1342,14 @@ IOURINGINLINE struct io_uring_sqe *_io_uring_get_sqe(struct io_uring *ring)
 	return NULL;
 }
 
+IOURINGINLINE struct hitchhiker *_io_uring_get_hite(struct io_uring *ring)
+{
+	struct io_uring_sq *sq = &ring->sq;
+	struct hitchhiker *hit;
+	hit = &ring->hites[((sq->sqe_tail -1) & sq->ring_mask)];
+	return hit;
+}
+
 /*
  * Return the appropriate mask for a buffer ring of size 'ring_entries'
  */
@@ -1408,6 +1417,10 @@ IOURINGINLINE void io_uring_buf_ring_cq_advance(struct io_uring *ring,
 IOURINGINLINE struct io_uring_sqe *io_uring_get_sqe(struct io_uring *ring)
 {
 	return _io_uring_get_sqe(ring);
+}
+IOURINGINLINE struct hitchhiker *io_uring_get_hite(struct io_uring *ring)
+{
+	return _io_uring_get_hite(ring);
 }
 #else
 struct io_uring_sqe *io_uring_get_sqe(struct io_uring *ring);
